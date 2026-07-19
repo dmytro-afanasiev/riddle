@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone
 from enum import IntEnum
 from sqlite3 import Connection
+from typing import Generator
 
 import click
 from flask import Flask, current_app
@@ -30,6 +31,18 @@ class ClueRequest:
     status: ClueStatus
     answer: str | None = dataclasses.field(default=None)
     closed_at: datetime | None = dataclasses.field(default=None)
+
+    def dto(self) -> dict:
+        return dict(
+            id=self.id,
+            created_at=self.created_at.isoformat(),
+            page=self.page,
+            description=self.description,
+            level=self.level,
+            status=self.status.name,
+            answer=self.answer,
+            closed_at=self.closed_at.isoformat() if self.closed_at else None,
+        )
 
 
 class ClueRequestRepo:
@@ -97,6 +110,44 @@ class ClueRequestRepo:
             self._con.execute(
                 "UPDATE clue_requests SET status = ?, answer = ?, closed_at = ? where id = ?",
                 (status.value, answer, int(time.time()), id),
+            )
+
+    def query(
+        self,
+        user_id: int,
+        ascending: bool = False,
+        limit: int | None = None,
+        offset: int = 0,
+        status: ClueStatus | None = None,
+    ) -> Generator[ClueRequest, None, None]:
+        if offset and limit is None:
+            raise AssertionError("invalid usage")
+
+        q = "SELECT * FROM clue_requests WHERE user_id = ?"
+
+        if status is not None:
+            q += " AND status = ?"
+
+        q += f" ORDER BY created_at {'ASC' if ascending else 'DESC'}"
+
+        if limit is not None:
+            q += f" LIMIT {limit} OFFSET {offset}"
+        for item in self._con.execute(
+            q, (user_id,) if status is None else (user_id, status.value)
+        ):
+            yield ClueRequest(
+                id=item["id"],
+                user_id=item["user_id"],
+                username=item["username"],
+                created_at=datetime.fromtimestamp(item["created_at"], tz=timezone.utc),
+                page=item["page"],
+                description=item["description"],
+                level=item["level"],
+                status=ClueStatus(item["status"]),
+                answer=item["answer"],
+                closed_at=datetime.fromtimestamp(item["closed_at"], tz=timezone.utc)
+                if item["closed_at"] is not None
+                else None,
             )
 
 

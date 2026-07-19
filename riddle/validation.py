@@ -17,6 +17,19 @@ def validate_body(model: type[BaseModel]):
     return decorator
 
 
+def validate_query(model: type[BaseModel]):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            data = request.args or {}
+            payload = model.model_validate(data)
+            return fn(*args, query=payload, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def init_app(app: Flask):
     @app.errorhandler(ValidationError)
     def handle_validation_error(err: ValidationError):
