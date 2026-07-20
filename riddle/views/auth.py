@@ -66,7 +66,7 @@ def login(payload: LoginPost):
     repo = UserRepo(get_db())
     user = repo.get(payload.username)
     if user is None:
-        return error_response("invalid credentials"), HTTPStatus.NOT_FOUND
+        return error_response("invalid credentials"), HTTPStatus.UNAUTHORIZED
     if user.status is not UserStatus.APPROVED:
         return error_response("invalid credentials"), HTTPStatus.UNAUTHORIZED
     if not repo.check_password(user, payload.password):
