@@ -96,7 +96,7 @@ def finale_try(payload: FinaleTry):
 
     KVStore(db).set_user_valid_attempt_id(g.user, attempt_id=attempt.id)
     _valid_users.add(g.user.id)
-    return "", HTTPStatus.OK
+    return {"msg": "You're goddamn right"}, HTTPStatus.OK
 
 
 @finale_bp.route("/finale/check", methods=[HTTPMethod.GET])
