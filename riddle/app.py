@@ -17,6 +17,10 @@ def make_app() -> Flask:
 
     app.register_blueprint(clue_bp)
 
+    from riddle.views.finale import finale_bp
+
+    app.register_blueprint(finale_bp)
+
     from . import db
 
     db.init_app(app)

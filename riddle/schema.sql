@@ -1,7 +1,3 @@
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS tokens;
-DROP TABLE IF EXISTS clue_requests;
-
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -34,3 +30,21 @@ CREATE TABLE clue_requests (
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
 );
 CREATE INDEX idx_clue_requests_user_id_created_at_desc ON clue_requests(user_id, created_at DESC);
+
+CREATE TABLE finale_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    username TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now')),
+    input TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
+);
+CREATE INDEX idx_finale_attempts_user_id_created_at_desc ON finale_attempts(user_id, created_at DESC);
+
+
+CREATE TABLE kv (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+) WITHOUT ROWID;
