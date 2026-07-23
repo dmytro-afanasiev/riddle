@@ -1,15 +1,17 @@
-from enum import IntEnum
-from flask import Flask
-from riddle.db import get_db
-import click
-import time
 import hashlib
 import secrets
+import time
 from datetime import datetime, timezone
-from flask import current_app
-from werkzeug.security import generate_password_hash, check_password_hash
+from enum import IntEnum
 from sqlite3 import Connection
-import dataclasses
+
+from riddle.constants import TOKEN_LIFETIME_SECONDS
+import click
+import msgspec
+from flask import Flask, current_app
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from riddle.db import get_db
 
 
 class UserStatus(IntEnum):
@@ -18,8 +20,7 @@ class UserStatus(IntEnum):
     REJECTED = 2
 
 
-@dataclasses.dataclass(slots=True, repr=False, eq=False, kw_only=True, frozen=True)
-class User:
+class User(msgspec.Struct, frozen=True, eq=False, order=False, kw_only=True):
     id: int
     username: str
     password_hash: str
@@ -69,7 +70,7 @@ class UserRepo:
     def create_token(self, user_id: int) -> tuple[str, int]:
         token = secrets.token_urlsafe(32)
         created_at = int(time.time())
-        expires_at = current_app.config["TOKEN_LIFETIME_SECONDS"] + created_at
+        expires_at = TOKEN_LIFETIME_SECONDS + created_at
 
         with self._con:
             self._con.execute(

@@ -1,30 +1,32 @@
-from typing import Annotated
-from flask import Blueprint, jsonify, request, g
-from functools import wraps
 from datetime import datetime, timezone
-from riddle.models.user import UserRepo, UserStatus
-from riddle.db import get_db
-from riddle.utils import error_response
+from functools import wraps
 from http import HTTPMethod, HTTPStatus
+from typing import Annotated
+
+import msgspec
+from flask import Blueprint, g, jsonify, request
+
+from riddle.db import get_db
+from riddle.models.user import UserRepo, UserStatus
+from riddle.utils import error_response
 from riddle.validation import validate_body
-from pydantic import BaseModel, StringConstraints
 
 auth_bp = Blueprint("auth", __name__)
 
 Username = Annotated[
-    str, StringConstraints(pattern=r"^[A-Za-z0-9]+$", min_length=4, max_length=32)
+    str, msgspec.Meta(pattern=r"^[A-Za-z0-9]+$", min_length=4, max_length=32)
 ]
-Password = Annotated[str, StringConstraints(min_length=8)]
+Password = Annotated[str, msgspec.Meta(min_length=8)]
 
 
-class RegisterPost(BaseModel):
+class RegisterPost(msgspec.Struct, frozen=True, eq=False, order=False):
     username: Username
     password: Password
 
 
-class LoginPost(BaseModel):
-    username: Username
-    password: Password
+class LoginPost(msgspec.Struct, frozen=True, eq=False, order=False):
+    username: str
+    password: str
 
 
 def require_auth(f):
@@ -78,7 +80,7 @@ def login(payload: LoginPost):
 
     return jsonify(
         token=token,
-        expires_at=datetime.fromtimestamp(expires_at, tz=timezone.utc).isoformat(),
+        expires_at=datetime.fromtimestamp(expires_at, tz=timezone.utc),
     )
 
 
@@ -92,4 +94,4 @@ def logout():
 @auth_bp.route("/auth/whoami", methods=[HTTPMethod.GET])
 @require_auth
 def whoami():
-    return jsonify(username=g.user.username, created_at=g.user.created_at.isoformat())
+    return jsonify(username=g.user.username, created_at=g.user.created_at)

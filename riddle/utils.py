@@ -1,15 +1,13 @@
-from flask import jsonify, Response
-import msgspec.json
+import random
 import typing as t
+
+import msgspec.json
+from flask import Response, jsonify
 from flask.json.provider import JSONProvider
 
 
-def error_response(
-    message: str, details: list[dict] | tuple[dict, ...] | dict = ()
-) -> Response:
-    if isinstance(details, dict):
-        details = (details,)
-    return jsonify(msg=message, details=details)
+def error_response(message: str, details: dict | None = None) -> Response:
+    return jsonify(msg=message, details=details or {})
 
 
 class MSGSpecJsonProvider(JSONProvider):
@@ -26,3 +24,22 @@ class MSGSpecJsonProvider(JSONProvider):
 
     def loads(self, s: str | bytes, **kwargs: t.Any) -> t.Any:
         return self._decoder.decode(s)
+
+
+class RandomStringJsonFileProvider:
+    __slots__ = "_filepath", "_clues"
+
+    def __init__(self, filepath: str):
+        self._filepath = filepath
+        self._clues: list[str] | None = None
+
+    @property
+    def clues(self) -> list[str]:
+        if self._clues is not None:
+            return self._clues
+        with open(self._filepath, "r") as f:
+            self._clues = msgspec.json.decode(f.read(), type=list[str])
+        return self._clues
+
+    def get_random(self) -> str:
+        return random.choice(self.clues)

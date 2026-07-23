@@ -1,14 +1,13 @@
 import sqlite3
 from flask import current_app, g, Flask
+from riddle.constants import DATABASE_NAME
 import click
 
 
 def get_db() -> sqlite3.Connection:
     db = getattr(g, "_database", None)
     if db is None:
-        db = g._database = sqlite3.connect(
-            current_app.config["DATABASE_NAME"], autocommit=False
-        )
+        db = g._database = sqlite3.connect(DATABASE_NAME, autocommit=False)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys = ON")
     return db

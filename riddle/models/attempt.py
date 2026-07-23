@@ -1,12 +1,12 @@
-import dataclasses
 from datetime import datetime, timezone
 from sqlite3 import Connection
+
+import msgspec
 
 from riddle.models.user import User
 
 
-@dataclasses.dataclass(slots=True, repr=False, eq=False, kw_only=True, frozen=True)
-class FinaleAttempt:
+class FinaleAttempt(msgspec.Struct, frozen=True, kw_only=True, eq=False, order=False):
     id: int
     user_id: int
     username: str

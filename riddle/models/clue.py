@@ -1,4 +1,3 @@
-import dataclasses
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -7,7 +6,9 @@ from sqlite3 import Connection
 from typing import Generator
 
 import click
-from flask import Flask, current_app
+import msgspec
+from flask import Flask
+from riddle.constants import DATABASE_NAME
 
 from riddle.db import get_db
 from riddle.models.user import User, UserRepo
@@ -19,8 +20,7 @@ class ClueStatus(IntEnum):
     REJECTED = 2
 
 
-@dataclasses.dataclass(slots=True, repr=False, eq=False, kw_only=True, frozen=True)
-class ClueRequest:
+class ClueRequest(msgspec.Struct, frozen=True, kw_only=True, eq=False, order=False):
     id: int
     user_id: int
     username: str
@@ -29,20 +29,8 @@ class ClueRequest:
     description: str
     level: int
     status: ClueStatus
-    answer: str | None = dataclasses.field(default=None)
-    closed_at: datetime | None = dataclasses.field(default=None)
-
-    def dto(self) -> dict:
-        return dict(
-            id=self.id,
-            created_at=self.created_at.isoformat(),
-            page=self.page,
-            description=self.description,
-            level=self.level,
-            status=self.status.name,
-            answer=self.answer,
-            closed_at=self.closed_at.isoformat() if self.closed_at else None,
-        )
+    answer: str | None = None
+    closed_at: datetime | None = None
 
 
 class ClueRequestRepo:
@@ -51,26 +39,12 @@ class ClueRequestRepo:
     def __init__(self, con: Connection):
         self._con = con
 
-    def create(
-        self, user: User, page: int, description: str, level: int
-    ) -> ClueRequest:
+    def create(self, user: User, page: int, description: str, level: int) -> None:
         with self._con:
-            cur = self._con.execute(
+            self._con.execute(
                 "INSERT INTO clue_requests (user_id, username, page, description, level) VALUES (?, ?, ?, ?, ?) RETURNING *",
                 (user.id, user.username, page, description, level),
             )
-            row = cur.fetchone()
-            assert row is not None
-        return ClueRequest(
-            id=row["id"],
-            user_id=user.id,
-            username=user.username,
-            created_at=datetime.fromtimestamp(row["created_at"], tz=timezone.utc),
-            page=page,
-            description=description,
-            level=level,
-            status=ClueStatus(row["status"]),
-        )
 
     def get_latest_timestamp(self, user_id: int) -> int | None:
         item = self._con.execute(
@@ -165,7 +139,7 @@ def get_pending(username: str):
             "sqlite3",
             "-column",
             "-header",
-            current_app.config["DATABASE_NAME"],
+            DATABASE_NAME,
             f"SELECT id, page, level, description FROM clue_requests WHERE user_id = '{user.id}' AND status = {ClueStatus.PENDING.value} ORDER BY created_at ASC",
         ]
     )
