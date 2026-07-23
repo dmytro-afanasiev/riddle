@@ -9,10 +9,15 @@ from riddle.models.user import User
 class KVKey(StrEnum):
     LAST_PHRASE_HASH = "last_phrase_hash"
     LAST_PHRASE_VALID_ATTEMPT_ID_PREFIX = "last_phrase_valid_attempt_id"
+    RANDOM_CLUE_REQUEST_NUMBER_PREFIX = "random_clue_requests"
 
     @classmethod
     def last_phrase_valid_attempt_id_user(cls, user_id: int) -> str:
         return cls.LAST_PHRASE_VALID_ATTEMPT_ID_PREFIX + ":" + str(user_id)
+
+    @classmethod
+    def random_clue_requests_user(cls, user_id: int) -> str:
+        return cls.RANDOM_CLUE_REQUEST_NUMBER_PREFIX + ":" + str(user_id)
 
 
 class KVStore:
@@ -38,6 +43,22 @@ class KVStore:
                 """,
                 (key, json.dumps(value, separators=(",", ":"))),
             )
+
+    def increment(self, key: str | KVKey, amount: int = 1) -> int:
+        key = self._sanitize_key(key)
+        with self._con:
+            cur = self._con.execute(
+                """
+                INSERT INTO kv (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = CAST(CAST(value AS INTEGER) + ? AS TEXT),
+                    updated_at = strftime('%s', 'now')
+                RETURNING value
+                """,
+                (key, str(amount), amount),
+            )
+            row = cur.fetchone()
+        return int(row["value"])
 
     def get(self, key: str | KVKey, default: Any = MISSING) -> Any:
         key = self._sanitize_key(key)

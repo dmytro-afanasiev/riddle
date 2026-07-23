@@ -15,6 +15,7 @@ from riddle.models.clue import ClueRequestRepo, ClueStatus
 from riddle.utils import RandomStringJsonFileProvider, error_response
 from riddle.validation import validate_body, validate_query
 from riddle.views.auth import require_auth
+from riddle.kv import KVKey, KVStore
 
 clue_bp = Blueprint("clue", __name__)
 
@@ -86,4 +87,8 @@ def get_clues(query: CluesGet):
 @clue_bp.route("/clues/random", methods=[HTTPMethod.GET])
 @require_auth
 def get_random_clue():
+
+    kv = KVStore(get_db())
+    kv.increment(KVKey.random_clue_requests_user(g.user.id))
+
     return jsonify(msg=g_random_clues_provider.get_random())
