@@ -1,9 +1,11 @@
 from flask import Flask
+from riddle.utils import MSGSpecJsonProvider
 
 
 def make_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object("riddle.config.Config")
+    app.json = MSGSpecJsonProvider(app)
 
     from riddle.views.health import health_bp
 
