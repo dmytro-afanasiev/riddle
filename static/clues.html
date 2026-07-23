@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Clues - Riddle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            width: auto;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.8rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .filter-btn:hover {
+            background: var(--surface-hover);
+        }
+        .filter-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .clue-item {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .clue-item:last-child {
+            border-bottom: none;
+        }
+        .clue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+        .clue-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .clue-desc {
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+            color: var(--text);
+        }
+        .clue-answer {
+            margin-top: 0.4rem;
+            padding: 0.5rem 0.7rem;
+            background: var(--bg);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            border-left: 3px solid var(--success);
+        }
+        .load-more {
+            margin-top: 1rem;
+        }
+        .empty-msg {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a class="nav-brand" href="/dashboard.html">Riddle</a>
+        <div class="nav-right">
+            <a href="/dashboard.html">Menu</a>
+            <a href="/clue-request.html">New Clue</a>
+            <span class="nav-user" id="nav-username"></span>
+            <a href="#" id="logout-link">Log out</a>
+        </div>
+    </nav>
+    <div class="container container--wide">
+        <h1>My Clues</h1>
+        <div class="filters">
+            <button class="filter-btn active" data-status="">All</button>
+            <button class="filter-btn" data-status="PENDING">Pending</button>
+            <button class="filter-btn" data-status="ANSWERED">Answered</button>
+            <button class="filter-btn" data-status="REJECTED">Rejected</button>
+        </div>
+        <div class="card" id="clue-list"></div>
+        <button class="load-more" id="load-more" style="display:none">Load more</button>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+        requireAuth();
+
+        var PAGE_SIZE = 16;
+        var offset = 0;
+        var currentStatus = "";
+        var loading = false;
+
+        whoami().then(function (data) {
+            document.getElementById("nav-username").textContent = data.username;
+        }).catch(function () {
+            clearToken();
+            window.location.href = "/login.html";
+        });
+
+        document.getElementById("logout-link").addEventListener("click", async function (e) {
+            e.preventDefault();
+            try { await logout(); } catch (err) { /* ignore */ }
+            window.location.href = "/";
+        });
+
+        var STATUS_NAMES = { 0: "PENDING", 1: "ANSWERED", 2: "REJECTED" };
+
+        function statusName(status) {
+            return STATUS_NAMES[status] || "UNKNOWN";
+        }
+
+        function statusBadge(status) {
+            var name = statusName(status);
+            var cls = "status-badge status-badge--" + name.toLowerCase();
+            return '<span class="' + cls + '">' + name + '</span>';
+        }
+
+        function formatDate(iso) {
+            var d = new Date(iso);
+            return d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+        }
+
+        function renderClue(c) {
+            var html = '<div class="clue-item">';
+            html += '<div class="clue-header">';
+            html += '<span class="clue-meta">Page ' + c.page + ' &middot; Level ' + c.level + ' &middot; ' + formatDate(c.created_at) + '</span>';
+            html += statusBadge(c.status);
+            html += '</div>';
+            if (c.description) {
+                html += '<div class="clue-desc">' + escapeHtml(c.description) + '</div>';
+            }
+            if (c.answer && statusName(c.status) === "ANSWERED") {
+                html += '<div class="clue-answer">' + escapeHtml(c.answer) + '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function escapeHtml(s) {
+            var d = document.createElement("div");
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        async function loadClues(reset) {
+            if (loading) return;
+            loading = true;
+            if (reset) {
+                offset = 0;
+                document.getElementById("clue-list").innerHTML = "";
+            }
+            var btn = document.getElementById("load-more");
+            btn.disabled = true;
+            try {
+                var items = await getClues(PAGE_SIZE, offset, currentStatus);
+                var list = document.getElementById("clue-list");
+                if (items.length === 0 && offset === 0) {
+                    list.innerHTML = '<div class="empty-msg">No clues found</div>';
+                    btn.style.display = "none";
+                } else {
+                    var html = "";
+                    for (var i = 0; i < items.length; i++) {
+                        html += renderClue(items[i]);
+                    }
+                    list.insertAdjacentHTML("beforeend", html);
+                    offset += items.length;
+                    btn.style.display = items.length < PAGE_SIZE ? "none" : "";
+                }
+            } catch (err) {
+                toastError(err.message);
+            } finally {
+                btn.disabled = false;
+                loading = false;
+            }
+        }
+
+        document.querySelectorAll(".filter-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.querySelector(".filter-btn.active").classList.remove("active");
+                btn.classList.add("active");
+                currentStatus = btn.getAttribute("data-status");
+                loadClues(true);
+            });
+        });
+
+        document.getElementById("load-more").addEventListener("click", function () {
+            loadClues(false);
+        });
+
+        loadClues(true);
+    </script>
+</body>
+</html>

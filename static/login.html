@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In - Riddle</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Log In</h1>
+        <div class="card">
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required minlength="4" maxlength="32">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required minlength="8">
+                </div>
+                <button type="submit">Log In</button>
+            </form>
+        </div>
+        <div class="links">
+            <a href="/register.html">Create account</a>
+            <a href="/">Home</a>
+        </div>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+        requireGuest();
+        document.getElementById("login-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            var btn = this.querySelector("button");
+            btn.disabled = true;
+            try {
+                await login(
+                    document.getElementById("username").value.trim(),
+                    document.getElementById("password").value
+                );
+                window.location.href = "/dashboard.html";
+            } catch (err) {
+                toastError(err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

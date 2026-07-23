@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finale</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .gate-msg {
+            text-align: center;
+            padding: 4rem 1rem;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            font-style: italic;
+        }
+        #content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a class="nav-brand" href="/dashboard.html">Riddle</a>
+        <div class="nav-right">
+            <span class="nav-user" id="nav-username"></span>
+            <a href="#" id="logout-link">Log out</a>
+        </div>
+    </nav>
+
+    <div id="gate" class="gate-msg">Not your time yet.</div>
+
+    <div id="content" class="container container--wide">
+        <!--
+            Add private content here with direct references, e.g.:
+            <img src="/private/photo.jpg">
+            <video src="/private/clip.mp4" controls></video>
+            nginx auth_request + cookie handles auth automatically.
+        -->
+        <p style="text-align:center;color:var(--text-muted)">Content is being prepared...</p>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        requireAuth();
+
+        whoami().then(function (data) {
+            document.getElementById("nav-username").textContent = data.username;
+        }).catch(function () {
+            clearToken();
+            window.location.href = "/login.html";
+        });
+
+        document.getElementById("logout-link").addEventListener("click", async function (e) {
+            e.preventDefault();
+            try { await logout(); } catch (err) { /* ignore */ }
+            window.location.href = "/";
+        });
+
+        checkFinale().then(function (ok) {
+            if (!ok) return;
+            document.getElementById("gate").style.display = "none";
+            document.getElementById("content").style.display = "";
+        });
+    </script>
+</body>
+</html>

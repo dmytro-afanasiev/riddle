@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Felina</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background: #070a06;
+        }
+        .nav {
+            border-bottom-color: #1a2618;
+        }
+        .nav-brand {
+            color: #4a7c3f;
+        }
+        h1 {
+            color: #4a7c3f;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 2rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        .card {
+            background: #0d120c;
+            border-color: #1a2618;
+        }
+        label {
+            color: #6b8c5e;
+            font-family: "Courier New", Courier, monospace;
+        }
+        input[type="text"] {
+            background: #070a06;
+            border-color: #1a2618;
+            color: #c8d4b8;
+        }
+        input[type="text"]:focus {
+            border-color: #4a7c3f;
+        }
+        button {
+            background: #3a6b2f;
+            color: #c8d4b8;
+            font-family: "Courier New", Courier, monospace;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        button:hover {
+            background: #4a7c3f;
+        }
+        .fail-msg {
+            text-align: center;
+            padding: 1rem;
+            color: #c8d4b8;
+            font-size: 1.1rem;
+            font-style: italic;
+            animation: fadein 0.3s ease-out;
+        }
+        .success-msg {
+            text-align: center;
+            padding: 1.5rem;
+            color: #4a7c3f;
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-family: "Courier New", Courier, monospace;
+            animation: fadein 0.3s ease-out;
+        }
+        @keyframes fadein {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .easter-egg {
+            position: fixed;
+            bottom: 0.5rem;
+            right: 0.7rem;
+            font-size: 0.55rem;
+            color: #0e130d;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a class="nav-brand" href="/dashboard.html">Riddle</a>
+        <div class="nav-right">
+            <span class="nav-user" id="nav-username"></span>
+            <a href="#" id="logout-link">Log out</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>Felina</h1>
+        <div class="card">
+            <form id="felina-form">
+                <div class="form-group">
+                    <label for="phrase">Say my name</label>
+                    <input type="text" id="phrase" name="phrase" required autocomplete="off">
+                </div>
+                <button type="submit">Say it</button>
+            </form>
+            <div id="fail-msg" class="fail-msg" style="display:none"></div>
+            <div id="success-msg" class="success-msg" style="display:none"></div>
+        </div>
+    </div>
+    <div class="easter-egg">I watched Jane die.</div>
+    <script src="/js/api.js"></script>
+    <script>
+        requireAuth();
+
+        whoami().then(function (data) {
+            document.getElementById("nav-username").textContent = data.username;
+        }).catch(function () {
+            clearToken();
+            window.location.href = "/login.html";
+        });
+
+        checkFinale().then(function (ok) {
+            if (ok) window.location.href = "/finale.html";
+        });
+
+        document.getElementById("logout-link").addEventListener("click", async function (e) {
+            e.preventDefault();
+            try { await logout(); } catch (err) { /* ignore */ }
+            window.location.href = "/";
+        });
+
+        document.getElementById("felina-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            var btn = this.querySelector("button");
+            var failEl = document.getElementById("fail-msg");
+            var successEl = document.getElementById("success-msg");
+            btn.disabled = true;
+            failEl.style.display = "none";
+            successEl.style.display = "none";
+            try {
+                var data = await api("/finale/try", { method: "POST", body: { phrase: document.getElementById("phrase").value } });
+                document.getElementById("felina-form").style.display = "none";
+                successEl.textContent = data && data.msg ? data.msg : "You're goddamn right.";
+                successEl.style.display = "";
+                setTimeout(function () {
+                    window.location.href = "/finale.html";
+                }, 2000);
+            } catch (err) {
+                failEl.textContent = err.message;
+                failEl.style.display = "";
+                document.getElementById("phrase").value = "";
+                document.getElementById("phrase").focus();
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

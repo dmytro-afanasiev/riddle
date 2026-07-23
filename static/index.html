@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riddle</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Riddle</h1>
+            <p>Request clues when you're stuck</p>
+        </div>
+        <div class="card">
+            <div class="btn-group">
+                <a href="/login.html" class="btn-outline">Log In</a>
+                <a href="/register.html" class="btn-outline">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+        if (isLoggedIn()) {
+            window.location.href = "/dashboard.html";
+        }
+    </script>
+</body>
+</html>
