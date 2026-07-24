@@ -78,6 +78,7 @@ async function api(path, opts) {
     const resp = await fetch(API + path, {
         method: opts.method || "GET",
         headers: headers,
+        cache: "no-store",
         body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
     let data = null;

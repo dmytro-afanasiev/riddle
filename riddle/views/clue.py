@@ -91,4 +91,6 @@ def get_random_clue():
     kv = KVStore(get_db())
     kv.increment(KVKey.random_clue_requests_user(g.user.id))
 
-    return jsonify(msg=g_random_clues_provider.get_random())
+    resp = jsonify(msg=g_random_clues_provider.get_random())
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
